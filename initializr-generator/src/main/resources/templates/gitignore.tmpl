@@ -1,10 +1,10 @@
 {{#mavenBuild}}
-/target/
+target/
 !.mvn/wrapper/maven-wrapper.jar
 {{/mavenBuild}}
 {{^mavenBuild}}
 .gradle
-/build/
+build/
 !gradle/wrapper/gradle-wrapper.jar
 {{/mavenBuild}}
 
@@ -16,6 +16,7 @@
 .settings
 .springBeans
 .sts4-cache
+.attach_pid*
 
 ### IntelliJ IDEA ###
 .idea
@@ -23,15 +24,15 @@
 *.iml
 *.ipr
 {{^mavenBuild}}
-/out/
+out/
 {{/mavenBuild}}
 
 ### NetBeans ###
-/nbproject/private/
+nbproject/private/
 {{#mavenBuild}}
-/build/
+build/
 {{/mavenBuild}}
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
