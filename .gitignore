@@ -10,7 +10,8 @@
 .gitignore
 .idea
 .factorypath
-*.iml
+*ttach_pid*
+.iml
 bin
 build
 target

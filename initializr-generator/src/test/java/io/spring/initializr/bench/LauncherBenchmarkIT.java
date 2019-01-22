@@ -15,29 +15,24 @@
  */
 package io.spring.initializr.bench;
 
-import java.util.Properties;
+import java.io.IOException;
 
 import io.spring.initializr.metadata.InitializrProperties;
 
-import org.openjdk.jmh.annotations.AuxCounters;
-import org.openjdk.jmh.annotations.AuxCounters.Type;
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 
-import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
-import org.springframework.boot.context.properties.bind.Binder;
-import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
-import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 import jmh.mbr.junit5.Microbenchmark;
 
@@ -48,17 +43,21 @@ import jmh.mbr.junit5.Microbenchmark;
 @Measurement(iterations = 5, time = 1)
 @Warmup(iterations = 1, time = 1)
 @Fork(value = 2, warmups = 0)
+@BenchmarkMode(Mode.AverageTime)
 @Microbenchmark
-public class PropertiesBenchmarkIT {
+public class LauncherBenchmarkIT {
 
 	@Benchmark
 	public void auto(MainState state) throws Exception {
-		state.run();
+		state.isolated();
 	}
 
 	@State(Scope.Thread)
-	@AuxCounters(Type.EVENTS)
-	public static class MainState {
+	public static class MainState extends LauncherState {
+
+		public MainState() {
+			super(Application.class);
+		}
 
 		public static enum Profile {
 
@@ -79,36 +78,23 @@ public class PropertiesBenchmarkIT {
 		@Param
 		private Profile prof = Profile.large;
 
-		public int size;
-
-		private Properties props;
-
 		@Setup
-		public void setup() {
-			if (props == null) {
-				props = loadProperties(
-						new ClassPathResource("application-" + prof + ".yml"));
-			}
+		public void setup() throws Exception {
+			addProperties("spring.profiles.active=" + prof, "spring.main.bannerMode=OFF",
+					"spring.main.web-application-type=none");
+			super.start();
 		}
 
-		public void run() {
-			size = props.size();
-			InitializrProperties config = load(props);
-			assertThat(config).isNotNull();
+		@Override
+		@TearDown
+		public void close() throws IOException {
+			super.close();
 		}
 	}
 
-	private static InitializrProperties load(Properties resource) {
-		ConfigurationPropertySource source = new MapConfigurationPropertySource(resource);
-		Binder binder = new Binder(source);
-		return binder.bind("initializr", InitializrProperties.class).get();
-	}
-
-	private static Properties loadProperties(Resource resource) {
-		YamlPropertiesFactoryBean yamlFactory = new YamlPropertiesFactoryBean();
-		yamlFactory.setResources(resource);
-		yamlFactory.afterPropertiesSet();
-		return yamlFactory.getObject();
+	@SpringBootConfiguration
+	@EnableConfigurationProperties(InitializrProperties.class)
+	public static class Application {
 	}
 
 }
